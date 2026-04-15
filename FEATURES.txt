@@ -1,0 +1,25 @@
+add items to your game. Each room can have one item in it. Items have description and weight. When printing room info, Item name should be included
+
+extension to items - make it so rooms can hold multiple items
+
+Streamline going to previous rooms
+implement the back command (back one room) 
+
+
+implement the go back many rooms version of the command command (back repeatedly retraces your steps)
+
+Responsibility Driven Design - Add a Player Class to represent the player (p 314)
+
+
+a Player class as described
+
+A player can pick up a single item
+
+Full implementation
+
+a player can pick up any number of items
+
+
+Extra credit i did
+
+added the look command
