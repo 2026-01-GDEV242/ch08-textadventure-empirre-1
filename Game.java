@@ -1,3 +1,4 @@
+import java.util.Stack;
 /**
  *  This class is the main class of the "World of Zuul" application. 
  *  "World of Zuul" is a very simple, text based adventure game.  Users 
@@ -11,15 +12,15 @@
  *  rooms, creates the parser and starts the game.  It also evaluates and
  *  executes the commands that the parser returns.
  * 
- * @author  Michael Kölling and David J. Barnes
- * @version 2016.02.29
+ * @author  Saba Machavariani
+ * @version 2026.04.12
  */
 
 public class Game 
 {
     private Parser parser;
-    private Room currentRoom;
-        
+    private Stack<Room> history;
+    private Player player;
     /**
      * Create the game and initialise its internal map.
      */
@@ -27,6 +28,7 @@ public class Game
     {
         createRooms();
         parser = new Parser();
+        history = new Stack<>();
     }
 
     /**
@@ -34,7 +36,7 @@ public class Game
      */
     private void createRooms()
     {
-        Room outside, theater, pub, lab, office;
+        Room outside, theater, pub, lab, office, gym, library,cafeteria;
       
         // create the rooms
         outside = new Room("outside the main entrance of the university");
@@ -42,6 +44,9 @@ public class Game
         pub = new Room("in the campus pub");
         lab = new Room("in a computing lab");
         office = new Room("in the computing admin office");
+        gym = new Room("in the gymnasium");
+        library = new Room("in the library");
+        cafeteria = new Room("in the cafeteria");
         
         // initialise room exits
         outside.setExit("east", theater);
@@ -56,8 +61,30 @@ public class Game
         lab.setExit("east", office);
 
         office.setExit("west", lab);
+        
+        office.setExit("south", gym);
+        gym.setExit("north", office);
 
-        currentRoom = outside;  // start game outside
+        gym.setExit("east", library);
+        library.setExit("west", gym);
+
+        library.setExit("south", cafeteria);
+        cafeteria.setExit("north", library);
+        
+        outside.addItem(new Item("backpack", 4));
+        theater.addItem(new Item("popcorn", 5));
+        theater.addItem(new Item("3d glasses", 1));
+        pub.addItem(new Item("beer", 5));
+        pub.addItem(new Item("pepsi", 3));
+        lab.addItem(new Item("headphones", 6));
+        lab.addItem(new Item("mouse", 2));
+        office.addItem(new Item("homework", 10));
+        gym.addItem(new Item("basketball", 5));
+        library.addItem(new Item("book", 2));
+        cafeteria.addItem(new Item("hamburger", 3));
+        cafeteria.addItem(new Item("chicken nuggets", 3));
+
+        player = new Player(outside);  // start the player outside
     }
 
     /**
@@ -88,9 +115,30 @@ public class Game
         System.out.println("World of Zuul is a new, incredibly boring adventure game.");
         System.out.println("Type '" + CommandWord.HELP + "' if you need help.");
         System.out.println();
-        System.out.println(currentRoom.getLongDescription());
+        System.out.println(player.getCurrentRoom().getLongDescription());
     }
+    
+    private void takeItem(Command command)
+    {
+        if(!command.hasSecondWord()) {
+            System.out.println("Take what?");
+            return;
+        }
 
+        String itemName = command.getSecondWord();
+
+        Room currentRoom = player.getCurrentRoom();
+
+        // remove item from room
+        Item item = currentRoom.removeItem(itemName);
+
+        if(item == null) {
+            System.out.println("That item is not here.");
+        } else {
+            player.addItem(item);
+            System.out.println("You picked up: " + item.getDescription());
+        }
+    }
     /**
      * Given a command, process (that is: execute) the command.
      * @param command The command to be processed.
@@ -118,6 +166,22 @@ public class Game
             case QUIT:
                 wantToQuit = quit(command);
                 break;
+                
+            case LOOK:
+                System.out.println(player.getCurrentRoom().getLongDescription());
+                break;
+                
+            case BACK:
+                goBack(command);
+                break;
+                
+            case INVENTORY:
+            System.out.println(player.getInventory());
+            break;
+            
+            case TAKE:
+            takeItem(command);
+            break;
         }
         return wantToQuit;
     }
@@ -153,14 +217,15 @@ public class Game
         String direction = command.getSecondWord();
 
         // Try to leave current room.
-        Room nextRoom = currentRoom.getExit(direction);
+        Room nextRoom = player.getCurrentRoom().getExit(direction);
 
         if (nextRoom == null) {
             System.out.println("There is no door!");
         }
         else {
-            currentRoom = nextRoom;
-            System.out.println(currentRoom.getLongDescription());
+            history.push(player.getCurrentRoom());
+            player.setCurrentRoom(nextRoom);
+            System.out.println(player.getCurrentRoom().getLongDescription());
         }
     }
 
@@ -178,5 +243,44 @@ public class Game
         else {
             return true;  // signal that we want to quit
         }
+    }
+    
+    /**
+     * Go back previous room
+     */
+    private void goBack(Command command)
+    {
+        if(command.hasSecondWord() && command.getSecondWord().equals("all")) {
+            if(history.isEmpty()) {
+                System.out.println("You havent gone anywhere!");
+                return;
+            }
+
+            // go back through ALL the rooms
+            while(!history.isEmpty()) {
+                player.setCurrentRoom(history.pop());
+            }
+
+            System.out.println("You returned to the beginning.");
+            System.out.println(player.getCurrentRoom().getLongDescription());
+        }
+        
+        else {
+            // go back one
+            if(history.isEmpty()) {
+                System.out.println("You havent gone anywhere!");
+            } 
+            
+            else {
+                player.setCurrentRoom(history.pop());
+                System.out.println(player.getCurrentRoom().getLongDescription());
+            }
+        }
+    }
+    
+    public static void main(String[] args)
+    {
+        Game game = new Game();
+        game.play();
     }
 }
